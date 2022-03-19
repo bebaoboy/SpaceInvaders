@@ -85,13 +85,13 @@ class SpaceInvaders:
         self.resource_manager.exec_code(s)
 
         self.file_name = 'data.bin'
-        self.key = fernet.Fernet(b'4WUlJJnPfhEk5zUQEhz4EasW8OajVbqAdGKhPeUrag4=')
+        # self.key =  #  your key
 
         try:
             with open(resource_path(self.file_name), 'rb') as file:
                 s = file.readline()
-                s = self.key.decrypt(s).decode()
-                l_split = s.split(',')
+                # s = self.key.decrypt(s)
+                l_split = s.decode().split(',')
                 self.coins, self.current_level = int(l_split[0]), int(l_split[1])
         except (Exception,):
             pass
@@ -100,7 +100,8 @@ class SpaceInvaders:
         self.presaved_level = [{}] * self.max_level
         try:
             with open(resource_path('level.txt'), 'rb') as file:
-                full = json.loads(self.key.decrypt(file.read()).decode())
+                # full = json.loads(self.key.decrypt(file.read()).decode())
+                full = json.loads(file.read().decode())
                 for obj in full:
                     if obj is not None:
                         level_num = int(obj['level_name'].split(' ')[1])
@@ -324,7 +325,8 @@ class SpaceInvaders:
         self.save_info()
         print(self.saved_level)
         with open(resource_path('level.txt'), 'wb') as file:
-            file.write(self.key.encrypt(json.dumps(self.saved_level, cls=ComplexEncoder, indent=4).encode()))
+            file.write(json.dumps(self.saved_level, cls=ComplexEncoder, indent=4).encode())
+            # file.write(self.key.encrypt(json.dumps(self.saved_level, cls=ComplexEncoder, indent=4).encode()))
 
         if self.counter == 0:
             self.counter = 1
@@ -336,8 +338,8 @@ class SpaceInvaders:
             print(f'{int(self.coins)},{counter},,,,,\n')
             s = (f'{int(self.coins)},{counter},\n' +
                  '\n'.join(f'''\n{rng.StringGenerator().get(1000, 1, 1).split('_')}'''))
-            s = self.key.encrypt(s.encode())
-
+            # s = self.key.encrypt(s.encode())
+            s = s.encode()
             file.write(s)
 
     def save_info(self):
