@@ -336,8 +336,8 @@ class SpaceInvaders:
             counter = self.current_level
         with open(resource_path(self.file_name), 'wb') as file:
             print(f'{int(self.coins)},{counter},,,,,\n')
-            s = (f'{int(self.coins)},{counter},\n' +
-                 '\n'.join(f'''\n{rng.StringGenerator().get(1000, 1, 1).split('_')}'''))
+            s = (f'{int(self.coins)},{counter},\n')
+                 # + '\n'.join(f'''\n{rng.StringGenerator().get(1000, 1, 1).split('_')}'''))
             # s = self.key.encrypt(s.encode())
             s = s.encode()
             file.write(s)
