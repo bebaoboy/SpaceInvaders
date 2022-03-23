@@ -68,7 +68,6 @@ class SpaceInvaders:
         self.is_ready = True
         self.game_done = False
         self.is_choosing_level = False
-        self.is_viewing_high_score = False
         self.counter = 0
         self.tips = [
             'press space to fire equipment',
@@ -86,6 +85,7 @@ class SpaceInvaders:
 
         self.file_name = 'data.bin'
         # self.key =  #  your key
+        self.high_scores = []
 
         try:
             with open(resource_path(self.file_name), 'rb') as file:
@@ -93,8 +93,10 @@ class SpaceInvaders:
                 # s = self.key.decrypt(s)
                 l_split = s.decode().split(',')
                 self.coins, self.current_level = int(l_split[0]), int(l_split[1])
+                self.high_scores = [int(_) for _ in l_split[2:]]
         except (Exception,):
             pass
+
         self.levels: list[type(level.Level)] = self.resource_manager.levels
 
         self.presaved_level = [{}] * self.max_level
@@ -116,6 +118,7 @@ class SpaceInvaders:
         # ui
         self.menu = menu.Menu('Courier New', self.font_size + 10,
                               self.screen, 100, 300)
+        self.high_scores = self.menu.add_highscore(self.high_scores)
 
         self.level_panel = level_grid.LevelGrid('Courier New', self.font_size + 10,
                                                 self.screen, self.screen_width, self.screen_height,
@@ -130,14 +133,15 @@ class SpaceInvaders:
 
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
+                        self.save_info()
                         self.save_to_file()
                         pygame.quit()
                         sys.exit(0)
 
                     if self.is_ready:
                         if self.menu.menu_dict['quit'].clicked():
-                            pygame.quit()
                             self.save_to_file()
+                            pygame.quit()
                         if self.menu.menu_dict['mute_sound'].clicked():
                             if self.menu.menu_dict['mute_sound'].is_clicked:
                                 self.sound_controller.mute_sound()
@@ -165,7 +169,6 @@ class SpaceInvaders:
 
                     if self.is_choosing_level:
                         current_timing = pygame.time.get_ticks()
-                        # print(self.current_timing - self.loading_timer)
                         if self.is_loading and current_timing - self.loading_timer >= 500:
                             self.is_loading = False
                         if not self.is_loading:
@@ -176,9 +179,6 @@ class SpaceInvaders:
                         keys = pygame.key.get_pressed()
                         if keys[pygame.K_q]:
                             self.reset()
-
-                    if self.is_viewing_high_score:
-                        pass
 
                     if self.game_done and event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_RETURN:
@@ -196,8 +196,6 @@ class SpaceInvaders:
                     for i in range(self.chosen_level, self.max_level + 1):
                         self.sound_controller.play_music(i)
 
-                        # loaded_level = \
-                        #     self.resource_manager.import_level_by_name(f'source.levels.level{i}', f'Level{i}')
                         if self.saved_level[i - 1] is not None:
                             self.loaded_level = self.saved_level[i - 1]
                             self.loaded_level.is_paused = True
@@ -211,7 +209,7 @@ class SpaceInvaders:
 
                         self.level_run()
 
-                        if self.loaded_level.end_level and not self.loaded_level.save_level\
+                        if self.loaded_level.end_level and not self.loaded_level.save_level \
                                 and self.counter < self.max_level:
                             self.counter += 1
                             self.save_info()
@@ -223,7 +221,6 @@ class SpaceInvaders:
                             self.game_done = True
                             break
 
-                # print('hey')
                 self.clock.tick(60)
                 pygame.display.update()
 
@@ -271,7 +268,6 @@ class SpaceInvaders:
         self.game_done = False
         self.is_choosing_level = False
         self.chosen_level = None
-        self.is_viewing_high_score = False
         self.sound_controller.play_music()
 
     def display_util(self):
@@ -336,8 +332,8 @@ class SpaceInvaders:
             counter = self.current_level
         with open(resource_path(self.file_name), 'wb') as file:
             print(f'{int(self.coins)},{counter},,,,,\n')
-            s = (f'{int(self.coins)},{counter},\n')
-                 # + '\n'.join(f'''\n{rng.StringGenerator().get(1000, 1, 1).split('_')}'''))
+            s = f'{int(self.coins)},{counter},{",".join([str(_) for _ in self.high_scores])}\n'
+            # + '\n'.join(f'''\n{rng.StringGenerator().get(1000, 1, 1).split('_')}'''))
             # s = self.key.encrypt(s.encode())
             s = s.encode()
             file.write(s)
@@ -347,6 +343,8 @@ class SpaceInvaders:
             self.score = self.loaded_level.score
             self.coins = self.loaded_level.coins
             self.hp = self.loaded_level.player_health
+            self.high_scores.append(self.score)
+            self.high_scores = self.menu.add_highscore(self.high_scores)
 
     def check_saved_level(self):
         pack = [self.display, self.screen_width, self.screen_height, self.player,

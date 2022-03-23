@@ -36,11 +36,42 @@ class Menu:
 
         self.menu_title.blit_button()
 
+        self.leaderboard = []
+        self.high_scores = []
+        self.leaderboard.append(
+            Button(
+                self.font, self.font_size - 3, self.screen, f"Leaderboard",
+                (self.x + 480, self.y + space / 3), self.bg)
+        )
+        self.max_highscore = 5
+
     def show(self):
         self.menu_title.show()
 
         for name, button in self.menu_dict.items():
             button.show()
+
+        for score in self.leaderboard:
+            score.show()
+
+    def add_highscore(self, high_scores):
+        while len(self.leaderboard) != 1:
+            self.leaderboard.pop()
+        self.high_scores.extend(_ for _ in high_scores if _ not in self.high_scores)
+        self.high_scores = sorted(self.high_scores, reverse=True)
+        if len(self.high_scores) < self.max_highscore:
+            self.max_highscore = len(self.high_scores)
+
+        for i, score in enumerate(self.high_scores[:self.max_highscore]):
+            self.leaderboard.append(
+                Button(
+                    self.font, self.font_size - 4, self.screen, f"{i + 1}. {score:>8}",
+                    (self.x + 485, self.y + self.space / 2 * i + self.space), self.bg)
+            )
+        print(self.high_scores)
+        for score in self.leaderboard:
+            score.blit_button()
+        return self.high_scores
 
     def reset(self):
         self.menu_dict['play'].reset()
