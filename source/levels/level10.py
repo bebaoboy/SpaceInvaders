@@ -159,9 +159,9 @@ class Level10(s_level.BossLevel):
 
     def recover(self):
         if self.enemies[0].enemy_packs[0][0] is not None:
-            self.enemies.enemy_packs[0][0].image = pygame.transform.scale(
-                self.enemies.enemy_packs[0][0].image, (
-                    self.enemies.enemy_packs[0][0].image.get_rect().width * 8,
-                    self.enemies.enemy_packs[0][0].image.get_rect().height * 8))
-            self.enemies.enemy_packs[0][0].sp.sprite.rect = \
-                self.enemies.enemy_packs[0][0].sp.sprite.image.get_rect(topleft=(200, 100))
+            self.enemies[0].enemy_packs[0][0].sp.sprite.image = pygame.transform.scale(
+                self.enemies[0].enemy_packs[0][0].sp.sprite.image, (
+                    self.enemies[0].enemy_packs[0][0].sp.sprite.image.get_rect().width * 8,
+                    self.enemies[0].enemy_packs[0][0].sp.sprite.image.get_rect().height * 8))
+            self.enemies[0].enemy_packs[0][0].sp.sprite.rect = \
+                self.enemies[0].enemy_packs[0][0].sp.sprite.image.get_rect(topleft=(200, 100))

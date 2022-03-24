@@ -9,11 +9,12 @@ import source.menu as menu
 import source.sound_controller as sound_controller
 import source.resource_manager as resource_manager
 import source.panel as panel
-from source import level_grid, rng, gif_background, level
+from source import level_grid, gif_background, level
 from source.player import Player
 from source.resource_path import resource_path
 from source.display_ingame_text import display_ingame_text
 from source.enemy import Enemy, EnemyArmy
+from source.levels import levelendless
 
 
 class SpaceInvaders:
@@ -60,10 +61,12 @@ class SpaceInvaders:
 
         self.min_level = 1  # NO CHANGE PLS
         self.max_level = 10
-        self.current_level = 11
+        self.current_level = 1
         self.chosen_level = None
 
         self.loaded_level = None
+        self.is_endless = False
+        self.endless_saved_level = None
 
         self.is_ready = True
         self.game_done = False
@@ -109,17 +112,26 @@ class SpaceInvaders:
                         level_num = int(obj['level_name'].split(' ')[1])
                         print(level_num)
                         self.presaved_level[level_num - 1] = obj
-        except Exception as err:
-            print(err)
+        except (Exception,):
+            pass
 
         self.saved_level = [None] * self.max_level
         self.check_saved_level()
 
+        try:
+            with open(resource_path('endless.txt'), 'rb') as file:
+                full = json.loads(file.read().decode())
+                level_num = full['level_name']
+                print(level_num)
+                self.endless_saved_level = full
+        except (Exception,):
+            pass
+
         # ui
         self.menu = menu.Menu('Courier New', self.font_size + 10,
                               self.screen, 100, 300)
-        self.high_scores = self.menu.add_highscore(self.high_scores)
-
+        if self.high_scores:
+            self.high_scores = self.menu.add_highscore(self.high_scores)
         self.level_panel = level_grid.LevelGrid('Courier New', self.font_size + 10,
                                                 self.screen, self.screen_width, self.screen_height,
                                                 self.min_level, self.max_level, self.current_level)
@@ -133,7 +145,6 @@ class SpaceInvaders:
 
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        self.save_info()
                         self.save_to_file()
                         pygame.quit()
                         sys.exit(0)
@@ -174,6 +185,8 @@ class SpaceInvaders:
                         if not self.is_loading:
                             self.chosen_level = self.level_panel.clicked()
                             if self.chosen_level is not None:
+                                if self.chosen_level == -1:
+                                    self.is_endless = True
                                 self.is_choosing_level = False
 
                         keys = pygame.key.get_pressed()
@@ -188,38 +201,116 @@ class SpaceInvaders:
 
                 # main game
                 if not self.is_ready and not self.is_choosing_level and not self.game_done:
-                    self.counter = self.chosen_level
+                    self.counter = 0
 
                     pack = [self.display, self.screen_width, self.screen_height, self.player,
                             self.clock, self.sound_controller, self.font, random.choice(self.tips)]
+                    if not self.is_endless:
+                        for i in range(self.chosen_level, self.max_level + 1):
+                            self.sound_controller.play_music(i)
 
-                    for i in range(self.chosen_level, self.max_level + 1):
-                        self.sound_controller.play_music(i)
+                            if self.saved_level[i - 1] is not None:
+                                self.loaded_level = self.saved_level[i - 1]
+                                self.loaded_level.is_paused = True
+                                self.loaded_level.score = max(self.loaded_level.score, self.score)
+                                self.loaded_level.player_health = max(self.loaded_level.player_health, self.hp)
+                                self.loaded_level.end_level = False
+                                self.saved_level[i - 1] = None
+                            else:
+                                loaded_level = self.levels[i - 1]
+                                self.loaded_level = loaded_level(*pack, f'level {i}',
+                                                                 self.coins, self.score, self.hp)
 
-                        if self.saved_level[i - 1] is not None:
-                            self.loaded_level = self.saved_level[i - 1]
+                            self.level_run()
+
+                            if self.loaded_level.end_level and not self.loaded_level.save_level \
+                                    and self.current_level < self.max_level:
+                                self.counter += 1
+                                self.save_info()
+                            else:
+                                if self.current_level == self.max_level:
+                                    if not self.loaded_level.game_over and not self.loaded_level.save_level:
+                                        self.current_level = self.max_level + 1
+                                        print('max level encountered')
+                                        self.save_info()
+                                        self.save_highscore()
+                                if self.loaded_level.save_level:
+                                    self.saved_level[i - 1] = self.loaded_level
+                                else:
+                                    self.save_highscore()
+                                self.game_done = True
+                                break
+                    else:
+                        self.sound_controller.play_music(-9)
+                        self.loaded_level = levelendless.EndlessLevelA(*pack, f'endless zone',
+                                                                       self.coins, self.score, self.hp)
+
+                        if self.endless_saved_level is not None:
+                            if type(self.endless_saved_level) is dict:
+                                for name, val in self.endless_saved_level.items():
+                                    if val is not None:
+                                        self.loaded_level.__setattr__(name, val)
+                                armies = []
+                                for enemies in self.endless_saved_level['enemies']:  # each enemy army
+                                    if enemies['enemy_amount'] != 0:
+                                        enemies_packs = []
+                                        for enemy_pack in enemies['enemy_packs']:  # each enemy row
+                                            enemy = []
+                                            for pack_dict in enemy_pack:  # each dict = enemy_col
+                                                if pack_dict is not None:
+                                                    enemy.append(Enemy(pack_dict['color'],
+                                                                       pack_dict['sp']['x'],
+                                                                       pack_dict['sp']['y'],
+                                                                       pack_dict['hp'],
+                                                                       pack_dict['dmg'],
+                                                                       pack_dict['score'],
+                                                                       pack_dict['cooldown'],
+                                                                       pack_dict['mlee_time']
+                                                                       ))
+                                                    enemy[len(enemy) - 1].check_ani()
+                                                    pack_dict.pop('ani')
+                                                    pack_dict.pop('normal_ani')
+                                                    pack_dict.pop('sp')
+                                                    for name, val in pack_dict.items():
+                                                        if val is not None:
+                                                            enemy[len(enemy) - 1].__setattr__(name, val)
+                                                else:
+                                                    enemy.append(None)
+                                            enemies_packs.append(enemy)
+                                        army = EnemyArmy(enemies_packs,
+                                                         enemies['enemy_amount'])
+                                        for name, val in enemies.items():
+                                            if val is not None and name != 'enemy_packs':
+                                                army.__setattr__(name, val)
+                                        armies.append(army)
+                                    else:
+                                        armies.append(EnemyArmy([[]], 0))
+
+                                self.loaded_level.enemies = armies
+                                if self.loaded_level.level_code == 'boss' or self.loaded_level.level_code == 'endless':
+                                    self.loaded_level.recover()
+                            else:
+                                self.loaded_level = self.endless_saved_level
+
                             self.loaded_level.is_paused = True
-                            self.loaded_level.score = max(self.loaded_level.score, self.score)
-                            self.loaded_level.player_health = max(self.loaded_level.player_health, self.hp)
                             self.loaded_level.end_level = False
-                            self.saved_level[i - 1] = None
-                        else:
-                            self.loaded_level = self.levels[i - 1]
-                            self.loaded_level = self.loaded_level(*pack, f'level {i}', self.coins, self.score, self.hp)
+                            self.endless_saved_level = None
 
                         self.level_run()
 
                         if self.loaded_level.end_level and not self.loaded_level.save_level \
                                 and self.counter < self.max_level:
-                            self.counter += 1
-                            self.save_info()
+                            pass
                         else:
-                            if self.counter == self.max_level and not self.loaded_level.game_over:
-                                self.current_level = self.max_level + 1
+                            if self.current_level == self.max_level and not self.loaded_level.game_over:
+                                pass
                             if self.loaded_level.save_level:
-                                self.saved_level[i - 1] = self.loaded_level
+                                self.endless_saved_level = self.loaded_level
+                            else:
+                                self.save_info()
+                                self.save_highscore()
                             self.game_done = True
-                            break
+                            self.is_endless = False
 
                 self.clock.tick(60)
                 pygame.display.update()
@@ -234,6 +325,9 @@ class SpaceInvaders:
 
                 for event_ in pygame.event.get():
                     if event_.type == pygame.QUIT:
+                        if self.loaded_level.level_code == 'endless':
+                            self.endless_saved_level = self.loaded_level
+                            self.save_highscore()
                         self.save_to_file()
                         pygame.quit()
                         sys.exit(0)
@@ -257,7 +351,7 @@ class SpaceInvaders:
             sys.exit()
 
     def reset(self):
-        if self.counter > self.current_level:
+        if self.counter + self.current_level > self.current_level:
             self.current_level = self.counter
         self.level_panel.update(self.current_level)
         self.menu.reset()
@@ -282,7 +376,7 @@ class SpaceInvaders:
         elif self.is_choosing_level:
             self.level_panel.show()
         elif self.game_done:
-            if self.counter == self.max_level:
+            if self.current_level >= self.max_level:
                 display_ingame_text(self.screen, self.font,
                                     f'you"ve cleared all {self.max_level} levels',
                                     self.screen_width / 2, self.screen_height / 2 - 100, 0.8, 0.8)
@@ -290,16 +384,18 @@ class SpaceInvaders:
                                     self.screen_width / 2, self.screen_height / 2 - 30, 0.8, 0.8)
                 display_ingame_text(self.screen, self.font, f'to be continued...',
                                     self.screen_width / 2, self.screen_height / 2 + 40)
+                display_ingame_text(self.screen, self.font, f'Try level -1',
+                                    self.screen_width / 2, self.screen_height / 2 + 240, 0.6, 0.6)
             elif self.loaded_level.save_level:
                 display_ingame_text(self.screen, self.font, f'SAVED LEVEL',
                                     self.screen_width / 2, self.screen_height / 2 - 100, 1.4, 1.4)
-                display_ingame_text(self.screen, self.font, f'you"ve passed {self.counter - self.chosen_level} '
+                display_ingame_text(self.screen, self.font, f'you"ve passed {self.counter} '
                                                             f'levels, from level {self.chosen_level}',
                                     self.screen_width / 2, self.screen_height / 2 - 20, 0.8, 0.8)
             else:
                 display_ingame_text(self.screen, self.font, f'Game over',
                                     self.screen_width / 2, self.screen_height / 2 - 100, 1.2, 1.2)
-                display_ingame_text(self.screen, self.font, f'you"ve passed {self.counter - self.chosen_level} '
+                display_ingame_text(self.screen, self.font, f'you"ve passed {self.counter} '
                                                             f'levels, from level {self.chosen_level}',
                                     self.screen_width / 2, self.screen_height / 2 - 20, 0.8, 0.8)
             display_ingame_text(self.screen, self.font, f'Press enter to exit',
@@ -324,6 +420,12 @@ class SpaceInvaders:
             file.write(json.dumps(self.saved_level, cls=ComplexEncoder, indent=4).encode())
             # file.write(self.key.encrypt(json.dumps(self.saved_level, cls=ComplexEncoder, indent=4).encode()))
 
+        with open(resource_path('endless.txt'), 'wb') as file:
+            if self.endless_saved_level is not None:
+                file.write(json.dumps(self.endless_saved_level, cls=ComplexEncoder, indent=4).encode())
+            else:
+                file.write(''.encode())
+
         if self.counter == 0:
             self.counter = 1
         if self.counter > self.current_level:
@@ -331,8 +433,8 @@ class SpaceInvaders:
         else:
             counter = self.current_level
         with open(resource_path(self.file_name), 'wb') as file:
-            print(f'{int(self.coins)},{counter},,,,,\n')
-            s = f'{int(self.coins)},{counter},{",".join([str(_) for _ in self.high_scores])}\n'
+            print(f'{int(self.coins)},{counter}\n')
+            s = f'{int(self.coins)},{counter},{",".join([str(_) for _ in self.high_scores])}'
             # + '\n'.join(f'''\n{rng.StringGenerator().get(1000, 1, 1).split('_')}'''))
             # s = self.key.encrypt(s.encode())
             s = s.encode()
@@ -340,11 +442,14 @@ class SpaceInvaders:
 
     def save_info(self):
         if self.loaded_level is not None:
-            self.score = self.loaded_level.score
+            self.score = int(self.loaded_level.score)
             self.coins = self.loaded_level.coins
             self.hp = self.loaded_level.player_health
+
+    def save_highscore(self):
+        if self.score not in self.high_scores:
             self.high_scores.append(self.score)
-            self.high_scores = self.menu.add_highscore(self.high_scores)
+        self.high_scores = self.menu.add_highscore(self.high_scores)
 
     def check_saved_level(self):
         pack = [self.display, self.screen_width, self.screen_height, self.player,
@@ -391,7 +496,7 @@ class SpaceInvaders:
                         armies.append(army)
 
                 loaded_level.enemies = armies
-                if loaded_level.level_code == 'boss':
+                if loaded_level.level_code == 'boss' or loaded_level.level_code == 'endless':
                     loaded_level.recover()
                 self.saved_level[i - 1] = loaded_level
 

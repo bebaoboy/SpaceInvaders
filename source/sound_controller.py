@@ -17,7 +17,8 @@ class SoundController:
 
         self.music_dict = {
             'main_theme': resource_path('music/main_theme.ogg'),
-            'world_1': resource_path('music/world_1.ogg')
+            'world_1': resource_path('music/world_1.ogg'),
+            'endless': resource_path('music/endless.ogg')
         }
         self.is_muted = False
         self.currently_playing = ''
@@ -27,6 +28,8 @@ class SoundController:
             self.play('main_theme')
         elif 0 <= level_num <= 10:
             self.play('world_1')
+        else:
+            self.play('endless')
 
     def play(self, s):
         if s == self.currently_playing:

@@ -17,7 +17,7 @@ class Level1(level.Level):
         self.append_enemy(enemies)
         self.laser_speed = -15
         self.laser_countdown = 600
-        self.laser_type = 3
+        self.laser_type = 1
         self.blocks.clear()
 
         self.max_waves = 4
@@ -44,6 +44,7 @@ class Level1(level.Level):
             enemies = deploy.enemy_grid_deploy(rows=2, cols=7, colors='g', initial_y=220)
             enemies.enemy_y_speed_countdown = 1000
             self.laser_countdown = 300
+            self.laser_type = 2
             self.spawn_timer = self.current_timing
             self.append_enemy(enemies)
 
@@ -53,6 +54,7 @@ class Level1(level.Level):
             enemies.enemy_shoot_cooldown = 200
             enemies.enemy_y_speed_drop_time = 6
             enemies.enemy_y_speed_drop_rate = 5
+            self.laser_type = 3
             self.laser_countdown = 200
             self.spawn_timer = self.current_timing
             self.append_enemy(enemies)
@@ -64,6 +66,7 @@ class Level1(level.Level):
             enemies.enemy_laser_speed *= 1.12
             enemies.enemy_y_speed_drop_time = 5
             enemies.enemy_y_speed_drop_rate = 5
+            self.laser_type = 4
             self.laser_countdown = 300
             self.spawn_timer = self.current_timing
             self.append_enemy(enemies)

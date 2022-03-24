@@ -259,6 +259,7 @@ class Level:
 
                     if self.current_timing - self.end_level_timer >= 3000:
                         self.finished_timer = True
+                        self.current_timing -= 3000
                         return
 
             self.health_bar_draw()
@@ -387,7 +388,7 @@ class Level:
                     list_of_blocks.append(block.Block(color, block_size, x, y))
 
         self.blocks.append(pygame.sprite.Group(list_of_blocks))
-        speed = random.choice([-1, -2, 1, 2])
+        speed = random.choice([-3, -1, -2, 1, 2, 3])
         for blocks in self.blocks[len(self.blocks) - 1].sprites():
             blocks.__setattr__('x_speed', speed)
 

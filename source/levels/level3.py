@@ -24,7 +24,7 @@ class Level3(level.Level):
         ]
         enemies = \
             deploy.enemy_grid_deploy(rows=12, cols=8, colors=colors, initial_y=50)
-        enemies.enemy_shoot_cooldown = 10
+        enemies.enemy_shoot_cooldown = 100
 
         self.append_enemy(enemies)
         self.laser_countdown = 100

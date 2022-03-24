@@ -48,6 +48,12 @@ class LevelGrid:
 
         level_cells = []
 
+        tmp = self.level_cell if self.current_level > self.max_level else self.level_cell_locked
+        self.endless_level = LevelCell(self.font, self.font_size + 10, self.screen, '-1',
+                                       (self.screen_width / 2 + 210, 50),
+                                       bg, img=tmp, inner_bg=None)
+        self.endless_level.blit_button()
+
         for i in range(self.min_level, self.max_level + 1):
             if i <= self.current_level:
                 img = self.level_cell
@@ -75,6 +81,10 @@ class LevelGrid:
 
     def update(self, lv):
         self.current_level = lv
+        if lv > self.max_level and self.endless_level.image == self.level_cell_locked:
+            self.endless_level = LevelCell(self.font, self.font_size + 10, self.screen, '-1',
+                                       (self.screen_width / 2 + 210, 50),
+                                       self.bg, img=self.level_cell, inner_bg=None)
         for level_row in self.level_grid:
             for level in level_row:
                 if int(level.original_text) < self.current_level:
@@ -92,14 +102,18 @@ class LevelGrid:
         for level_row in self.level_grid:
             for level in level_row:
                 level.show()
+        self.endless_level.show()
 
     def reset(self):
         self.level_panel_title.reset()
         for level_row in self.level_grid:
             for level in level_row:
                 level.reset()
+        self.endless_level.reset()
 
     def clicked(self):
+        if self.current_level > self.max_level and self.endless_level.clicked():
+            return -1
         for level_row in self.level_grid:
             for level in level_row:
                 lv = int(level.original_text)

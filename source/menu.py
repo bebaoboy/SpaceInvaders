@@ -43,6 +43,7 @@ class Menu:
                 self.font, self.font_size - 3, self.screen, f"Leaderboard",
                 (self.x + 480, self.y + space / 3), self.bg)
         )
+        self.leaderboard[0].blit_button()
         self.max_highscore = 5
 
     def show(self):
@@ -57,8 +58,7 @@ class Menu:
     def add_highscore(self, high_scores):
         while len(self.leaderboard) != 1:
             self.leaderboard.pop()
-        self.high_scores.extend(_ for _ in high_scores if _ not in self.high_scores)
-        self.high_scores = sorted(self.high_scores, reverse=True)
+        self.high_scores = sorted(high_scores, reverse=True)
         if len(self.high_scores) < self.max_highscore:
             self.max_highscore = len(self.high_scores)
 
