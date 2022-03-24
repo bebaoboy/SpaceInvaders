@@ -416,11 +416,11 @@ class SpaceInvaders:
         # pass
         self.save_info()
         print(self.saved_level)
-        with open(resource_path('level.txt'), 'wb') as file:
+        with open('level.txt', 'wb') as file:
             file.write(json.dumps(self.saved_level, cls=ComplexEncoder, indent=4).encode())
             # file.write(self.key.encrypt(json.dumps(self.saved_level, cls=ComplexEncoder, indent=4).encode()))
 
-        with open(resource_path('endless.txt'), 'wb') as file:
+        with open('endless.txt', 'wb') as file:
             if self.endless_saved_level is not None:
                 file.write(json.dumps(self.endless_saved_level, cls=ComplexEncoder, indent=4).encode())
             else:
@@ -432,7 +432,7 @@ class SpaceInvaders:
             counter = self.counter
         else:
             counter = self.current_level
-        with open(resource_path(self.file_name), 'wb') as file:
+        with open(self.file_name, 'wb') as file:
             print(f'{int(self.coins)},{counter}\n')
             s = f'{int(self.coins)},{counter},{",".join([str(_) for _ in self.high_scores])}'
             # + '\n'.join(f'''\n{rng.StringGenerator().get(1000, 1, 1).split('_')}'''))
